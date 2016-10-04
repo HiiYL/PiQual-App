@@ -7,6 +7,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -63,7 +64,7 @@ public class DetailActivity extends AppCompatActivity {
         data = getIntent().getParcelableArrayListExtra("data");
         pos = getIntent().getIntExtra("pos", 0);
 
-        setTitle(data.get(pos).getName());
+        setTitle("Test123123");
 
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
@@ -83,7 +84,8 @@ public class DetailActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-                mSectionsPagerAdapter.getCurrentFragment().uploadMultipart();
+
+                mSectionsPagerAdapter.getCurrentFragment().displayScore();
             }
 
             @Override
@@ -135,7 +137,7 @@ public class DetailActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position, data.get(position).getName(), data.get(position).getUrl());
+            return PlaceholderFragment.newInstance(position, data.get(position));
         }
 
         @Override
@@ -146,7 +148,7 @@ public class DetailActivity extends AppCompatActivity {
 
         @Override
         public CharSequence getPageTitle(int position) {
-            return data.get(position).getName();
+            return "TEST";
         }
 
         private PlaceholderFragment mCurrentFragment;
@@ -175,32 +177,38 @@ public class DetailActivity extends AppCompatActivity {
          * fragment.
          */
 
-        String name, url;
+        ImageModel imageModel;
         int pos;
         private static final String ARG_SECTION_NUMBER = "section_number";
-        private static final String ARG_IMG_TITLE = "image_title";
-        private static final String ARG_IMG_URL = "image_url";
+        private static final String ARG_IMG_MODEL = "image_model";
 
-        @Override
-        public void setArguments(Bundle args) {
-            super.setArguments(args);
-            this.pos = args.getInt(ARG_SECTION_NUMBER);
-            this.name = args.getString(ARG_IMG_TITLE);
-            this.url = args.getString(ARG_IMG_URL);
-        }
+
 
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static PlaceholderFragment newInstance(int sectionNumber, String name, String url) {
+        public static PlaceholderFragment newInstance(int sectionNumber, ImageModel imageModel) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            args.putString(ARG_IMG_TITLE, name);
-            args.putString(ARG_IMG_URL, url);
+            args.putParcelable(ARG_IMG_MODEL, imageModel);
             fragment.setArguments(args);
             return fragment;
+        }
+
+        @Override
+        public void onCreate(Bundle savedInstanceState)
+        {
+            super.onCreate(savedInstanceState);
+
+            // handle fragment arguments
+            Bundle args = getArguments();
+            if(args != null)
+            {
+                imageModel = args.getParcelable(ARG_IMG_MODEL);
+                pos = args.getInt(ARG_SECTION_NUMBER);
+            }
         }
 
         public PlaceholderFragment() {
@@ -218,7 +226,7 @@ public class DetailActivity extends AppCompatActivity {
 
             final ImageView imageView = (ImageView) rootView.findViewById(R.id.detail_image);
 
-            Glide.with(getActivity()).load(url).thumbnail(0.1f).into(imageView);
+            Glide.with(getActivity()).load(imageModel.getUrl()).thumbnail(0.1f).into(imageView);
 
 
 
@@ -233,8 +241,8 @@ public class DetailActivity extends AppCompatActivity {
 
                 //Creating a multi part request
                 new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.106:5000/api")
-                        .addFileToUpload(this.url, "file") //Adding file
-                        .addParameter("name", name) //Adding text parameter to the request
+                        .addFileToUpload(imageModel.getUrl(), "file") //Adding file
+                        .addParameter("name", imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig())
                         .setMaxRetries(2)
                         .setDelegate(new UploadStatusDelegate() {
@@ -255,6 +263,8 @@ public class DetailActivity extends AppCompatActivity {
                                 try {
                                     JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
                                     String  score = mainObject.getString("score");
+                                    imageModel.setRating(Float.parseFloat(score));
+                                    imageModel.save();
                                     Toast.makeText(getActivity(), "Score of Image is : " + score , Toast.LENGTH_SHORT).show();
                                 } catch (JSONException e) {
                                     e.printStackTrace();
@@ -276,5 +286,12 @@ public class DetailActivity extends AppCompatActivity {
         }
 
 
+        public void displayScore() {
+            if(imageModel.getRating() != 0.0f) {
+                Toast.makeText(getActivity(), "Score of Image is : " + imageModel.getRating() , Toast.LENGTH_SHORT).show();
+            }else {
+                uploadMultipart();
+            }
+        }
     }
 }

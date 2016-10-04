@@ -100,14 +100,18 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
         }
-
-        ArrayList<String>localImages = getImagesPath(this);
-        for(String imageUrl : localImages) {
-            ImageModel imageModel = new ImageModel();
-            imageModel.setName("Image 123123");
-            //Log.d("LOADING IMAGES",imageUrl);
-            imageModel.setUrl(imageUrl);
-            data.add(imageModel);
+        if(ImageModel.count(ImageModel.class) > 0) {
+            data = new ArrayList<ImageModel>(ImageModel.listAll(ImageModel.class, "rating desc"));
+        }else {
+            ArrayList<String> localImages = getImagesPath(this);
+            for (String imageUrl : localImages) {
+                ImageModel imageModel = new ImageModel();
+                imageModel.setName("SERIOUSLYWTF");
+                //Log.d("LOADING IMAGES",imageUrl);
+                imageModel.setUrl(imageUrl);
+                data.add(imageModel);
+                imageModel.save();
+            }
         }
 
 

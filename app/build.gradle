@@ -29,4 +29,5 @@ dependencies {
     compile 'com.android.support:palette-v7:24.2.0'
     compile 'com.android.support:support-v4:24.2.0'
     compile 'net.gotev:uploadservice:3.0.3'
+    compile 'com.github.satyan:sugar:1.4'
 }

@@ -3,12 +3,16 @@ package com.hiiyl.piqual;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.orm.SugarRecord;
+
 /**
  * Created by Suleiman19 on 10/22/15.
  */
-public class ImageModel implements Parcelable {
+public class ImageModel extends SugarRecord implements Parcelable {
 
     String name, url;
+
+    float rating;
 
     public ImageModel() {
 
@@ -17,6 +21,8 @@ public class ImageModel implements Parcelable {
     protected ImageModel(Parcel in) {
         name = in.readString();
         url = in.readString();
+        rating = in.readFloat();
+        //setId(in.readLong());
     }
 
     public static final Creator<ImageModel> CREATOR = new Creator<ImageModel>() {
@@ -56,5 +62,15 @@ public class ImageModel implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(name);
         dest.writeString(url);
+        dest.writeFloat(rating);
+        //dest.writeLong(getId());
+    }
+
+    public float getRating() {
+        return rating;
+    }
+
+    public void setRating(float rating) {
+        this.rating = rating;
     }
 }
