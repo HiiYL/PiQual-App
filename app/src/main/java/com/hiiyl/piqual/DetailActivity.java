@@ -13,6 +13,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -135,7 +136,7 @@ public class DetailActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position, data.get(position).getName(), data.get(position).getUrl());
+            return PlaceholderFragment.newInstance(position, data.get(position));
         }
 
         @Override
@@ -175,30 +176,31 @@ public class DetailActivity extends AppCompatActivity {
          * fragment.
          */
 
-        String name, url;
+        ImageModel _imageModel;
         int pos;
         private static final String ARG_SECTION_NUMBER = "section_number";
         private static final String ARG_IMG_TITLE = "image_title";
         private static final String ARG_IMG_URL = "image_url";
+        private static final String ARG_IMG = "image";
+
+        private TextView ratingTextView;
 
         @Override
         public void setArguments(Bundle args) {
             super.setArguments(args);
             this.pos = args.getInt(ARG_SECTION_NUMBER);
-            this.name = args.getString(ARG_IMG_TITLE);
-            this.url = args.getString(ARG_IMG_URL);
+            this._imageModel = args.getParcelable(ARG_IMG);
         }
 
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static PlaceholderFragment newInstance(int sectionNumber, String name, String url) {
+        public static PlaceholderFragment newInstance(int sectionNumber, ImageModel imageModel ) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            args.putString(ARG_IMG_TITLE, name);
-            args.putString(ARG_IMG_URL, url);
+            args.putParcelable(ARG_IMG, imageModel);
             fragment.setArguments(args);
             return fragment;
         }
@@ -218,7 +220,11 @@ public class DetailActivity extends AppCompatActivity {
 
             final ImageView imageView = (ImageView) rootView.findViewById(R.id.detail_image);
 
-            Glide.with(getActivity()).load(url).thumbnail(0.1f).into(imageView);
+            Glide.with(getActivity()).load(_imageModel.getUrl()).thumbnail(0.1f).into(imageView);
+
+            if(_imageModel.getRating() != 0.0f) {
+                ratingTextView.setText(String.valueOf(_imageModel.getRating()));
+            }
 
 
 
@@ -233,8 +239,8 @@ public class DetailActivity extends AppCompatActivity {
 
                 //Creating a multi part request
                 new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.106:5000/api")
-                        .addFileToUpload(this.url, "file") //Adding file
-                        .addParameter("name", name) //Adding text parameter to the request
+                        .addFileToUpload(this._imageModel.getUrl(), "file") //Adding file
+                        .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig())
                         .setMaxRetries(2)
                         .setDelegate(new UploadStatusDelegate() {
@@ -256,10 +262,12 @@ public class DetailActivity extends AppCompatActivity {
                                     JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
                                     String  score = mainObject.getString("score");
                                     Toast.makeText(getActivity(), "Score of Image is : " + score , Toast.LENGTH_SHORT).show();
+                                    _imageModel.setRating(Float.parseFloat(score));
+                                    _imageModel.save();
+
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
-                                // YourClass obj = new Gson().fromJson(serverResponse.getBodyAsString(), YourClass.class);
 
                             }
 
