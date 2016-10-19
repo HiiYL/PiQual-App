@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,9 +14,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -100,15 +103,23 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
         }
-
-        ArrayList<String>localImages = getImagesPath(this);
-        for(String imageUrl : localImages) {
-            ImageModel imageModel = new ImageModel();
-            imageModel.setName("Image 123123");
-            //Log.d("LOADING IMAGES",imageUrl);
-            imageModel.setUrl(imageUrl);
-            data.add(imageModel);
+        data = new ArrayList<ImageModel>(ImageModel.listAll(ImageModel.class));
+        if(data.size() <= 0){
+            ArrayList<String>localImages = getImagesPath(this);
+            for(String imageUrl : localImages) {
+                ImageModel imageModel = new ImageModel();
+                int index = imageUrl.lastIndexOf(File.separator);
+                String fileName = imageUrl.substring(index + 1);
+                imageModel.setName("Test");
+                //Log.d("LOADING IMAGES",imageUrl);
+                imageModel.setUrl(imageUrl);
+                data.add(imageModel);
+                imageModel.save();
+            }
+        }else {
+            Log.d("Images", "Loaded from memory");
         }
+
 
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -126,12 +137,10 @@ public class MainActivity extends AppCompatActivity {
                 new RecyclerItemClickListener.OnItemClickListener() {
                     @Override
                     public void onItemClick(View view, int position) {
-
                         Intent intent = new Intent(MainActivity.this, DetailActivity.class);
                         intent.putParcelableArrayListExtra("data", data);
                         intent.putExtra("pos", position);
                         startActivity(intent);
-
                     }
                 }));
 
