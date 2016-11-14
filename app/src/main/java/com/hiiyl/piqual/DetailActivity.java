@@ -1,6 +1,11 @@
 package com.hiiyl.piqual;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -29,6 +34,8 @@ import net.gotev.uploadservice.UploadStatusDelegate;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -243,15 +250,70 @@ public class DetailActivity extends AppCompatActivity {
             return rootView;
         }
 
-        public void uploadMultipart() {
+        public class CompressAndUploadRunnable extends AsyncTask<Void,Void,Void>{
+            String file_to_compress,compressedImageUrl;
 
+            CompressAndUploadRunnable(String file_to_compress) {
+                this.file_to_compress = file_to_compress;
+            }
+
+            public void setFile(String file_to_compress) {
+                this.file_to_compress = file_to_compress;
+            }
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                compressedImageUrl = compressImage(file_to_compress);
+                return null;
+            }
+            @Override
+            protected void onPostExecute(Void result) {
+                uploadMultipart(compressedImageUrl);
+            }
+
+
+        }
+
+
+        public String compressImage(String file_to_compress) {
+            Bitmap image = Bitmap.createScaledBitmap (BitmapFactory.decodeFile(file_to_compress), 224, 224, false);
+            return putBitmapInDiskCache(file_to_compress, image);
+        }
+        private String putBitmapInDiskCache(String url, Bitmap avatar) {
+            // Create a path pointing to the system-recommended cache dir for the app, with sub-dir named
+            // thumbnails
+            File cacheDir = new   File(getActivity().getCacheDir(), "thumbnails");
+
+            if(!cacheDir.exists()) cacheDir.mkdir();
+            // Create a path in that dir for a file, named by the default hash of the url
+            String[] temp = url.split("/");
+            String filename = temp[temp.length -1];
+            File cacheFile = new File(cacheDir, filename);
+            try {
+                // Create a file at the file path, and open it for writing obtaining the output stream
+                cacheFile.createNewFile();
+                FileOutputStream fos = new FileOutputStream(cacheFile);
+                // Write the bitmap to the output stream (and thus the file) in PNG format (lossless compression)
+                avatar.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                // Flush and close the output stream
+                fos.flush();
+                fos.close();
+            } catch (Exception e) {
+                // Log anything that might go wrong with IO to file
+                Log.e("TEST", "Error when saving image to cache. ", e);
+            }
+            Log.d("CACHEFILEPATH", cacheFile.getPath());
+            return cacheFile.getPath();
+        }
+
+        public void uploadMultipart(String imagePath) {
             //Uploading code
             try {
                 String uploadId = UUID.randomUUID().toString();
 
                 //Creating a multi part request
-                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.106:5000/api")
-                        .addFileToUpload(this._imageModel.getUrl(), "file") //Adding file
+                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.1.104:5000/api")
+                        .addFileToUpload(imagePath, "file") //Adding file
                         .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig())
                         .setMaxRetries(2)
@@ -274,10 +336,8 @@ public class DetailActivity extends AppCompatActivity {
                                     JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
                                     String  score = mainObject.getString("score");
                                     _imageModel.setRating(Float.parseFloat(score));
-                                    _imageModel.save();
+//                                    _imageModel.save();
                                     Toast.makeText(getActivity(), "Score of Image is : " + score , Toast.LENGTH_SHORT).show();
-                                    _imageModel.setRating(Float.parseFloat(score));
-                                    _imageModel.save();
 
                                 } catch (JSONException e) {
                                     e.printStackTrace();
@@ -302,7 +362,7 @@ public class DetailActivity extends AppCompatActivity {
             if(_imageModel.getRating() != 0.0f) {
                 Toast.makeText(getActivity(), "Score of Image is : " + _imageModel.getRating() , Toast.LENGTH_SHORT).show();
             }else {
-                uploadMultipart();
+                new CompressAndUploadRunnable(_imageModel.getUrl()).execute();
             }
         }
     }
