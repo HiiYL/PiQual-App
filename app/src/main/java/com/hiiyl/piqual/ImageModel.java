@@ -9,7 +9,6 @@ import com.orm.SugarRecord;
  * Created by Suleiman19 on 10/22/15.
  */
 public class ImageModel extends SugarRecord implements Parcelable {
-
     String name;
     String url;
 
@@ -68,6 +67,7 @@ public class ImageModel extends SugarRecord implements Parcelable {
         dest.writeString(name);
         dest.writeString(url);
         dest.writeFloat(rating);
+        //dest.writeLong(getId());
     }
 
     public float getRating() {

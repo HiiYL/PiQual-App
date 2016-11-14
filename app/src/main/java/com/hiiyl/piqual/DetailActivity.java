@@ -7,6 +7,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -64,7 +65,7 @@ public class DetailActivity extends AppCompatActivity {
         data = getIntent().getParcelableArrayListExtra("data");
         pos = getIntent().getIntExtra("pos", 0);
 
-        setTitle(data.get(pos).getName());
+        setTitle("Test123123");
 
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
@@ -84,7 +85,8 @@ public class DetailActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-                mSectionsPagerAdapter.getCurrentFragment().uploadMultipart();
+
+                mSectionsPagerAdapter.getCurrentFragment().displayScore();
             }
 
             @Override
@@ -147,7 +149,7 @@ public class DetailActivity extends AppCompatActivity {
 
         @Override
         public CharSequence getPageTitle(int position) {
-            return data.get(position).getName();
+            return "TEST";
         }
 
         private PlaceholderFragment mCurrentFragment;
@@ -175,7 +177,6 @@ public class DetailActivity extends AppCompatActivity {
          * The fragment argument representing the section number for this
          * fragment.
          */
-
         ImageModel _imageModel;
         int pos;
         private static final String ARG_SECTION_NUMBER = "section_number";
@@ -205,6 +206,20 @@ public class DetailActivity extends AppCompatActivity {
             return fragment;
         }
 
+        @Override
+        public void onCreate(Bundle savedInstanceState)
+        {
+            super.onCreate(savedInstanceState);
+
+            // handle fragment arguments
+            Bundle args = getArguments();
+            if(args != null)
+            {
+                _imageModel = args.getParcelable(ARG_IMG);
+                pos = args.getInt(ARG_SECTION_NUMBER);
+            }
+        }
+
         public PlaceholderFragment() {
         }
 
@@ -225,9 +240,6 @@ public class DetailActivity extends AppCompatActivity {
             if(_imageModel.getRating() != 0.0f) {
                 ratingTextView.setText(String.valueOf(_imageModel.getRating()));
             }
-
-
-
             return rootView;
         }
 
@@ -261,6 +273,8 @@ public class DetailActivity extends AppCompatActivity {
                                 try {
                                     JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
                                     String  score = mainObject.getString("score");
+                                    _imageModel.setRating(Float.parseFloat(score));
+                                    _imageModel.save();
                                     Toast.makeText(getActivity(), "Score of Image is : " + score , Toast.LENGTH_SHORT).show();
                                     _imageModel.setRating(Float.parseFloat(score));
                                     _imageModel.save();
@@ -284,5 +298,12 @@ public class DetailActivity extends AppCompatActivity {
         }
 
 
+        public void displayScore() {
+            if(_imageModel.getRating() != 0.0f) {
+                Toast.makeText(getActivity(), "Score of Image is : " + _imageModel.getRating() , Toast.LENGTH_SHORT).show();
+            }else {
+                uploadMultipart();
+            }
+        }
     }
 }
