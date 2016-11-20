@@ -22,6 +22,7 @@ public class ImageModel extends SugarRecord implements Parcelable {
         name = in.readString();
         url = in.readString();
         rating = in.readFloat();
+        setId(in.readLong());
     }
 
     public ImageModel(String name, String url, String filePath) {
@@ -67,7 +68,7 @@ public class ImageModel extends SugarRecord implements Parcelable {
         dest.writeString(name);
         dest.writeString(url);
         dest.writeFloat(rating);
-        //dest.writeLong(getId());
+        dest.writeLong(getId());
     }
 
     public float getRating() {

@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 //Log.d("LOADING IMAGES",imageUrl);
                 imageModel.setUrl(imageUrl);
                 data.add(imageModel);
-                //imageModel.save();
+                imageModel.save();
             }
         }else {
             Log.d("Images", "Loaded from memory");

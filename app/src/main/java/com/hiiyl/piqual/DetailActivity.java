@@ -72,7 +72,7 @@ public class DetailActivity extends AppCompatActivity {
         data = getIntent().getParcelableArrayListExtra("data");
         pos = getIntent().getIntExtra("pos", 0);
 
-        setTitle("Test123123");
+        setTitle("Aesthetic Image");
 
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
@@ -92,7 +92,6 @@ public class DetailActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-
                 mSectionsPagerAdapter.getCurrentFragment().displayScore();
             }
 
@@ -244,8 +243,10 @@ public class DetailActivity extends AppCompatActivity {
 
             Glide.with(getActivity()).load(_imageModel.getUrl()).thumbnail(0.1f).into(imageView);
 
+            ratingTextView = (TextView) rootView.findViewById(R.id.rating_textview);
+
             if(_imageModel.getRating() != 0.0f) {
-                ratingTextView.setText(String.valueOf(_imageModel.getRating()));
+                ratingTextView.setText("Rating : " + String.valueOf(_imageModel.getRating()));
             }
             return rootView;
         }
@@ -312,7 +313,7 @@ public class DetailActivity extends AppCompatActivity {
                 String uploadId = UUID.randomUUID().toString();
 
                 //Creating a multi part request
-                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.1.104:5000/api")
+                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.109:5000/api")
                         .addFileToUpload(imagePath, "file") //Adding file
                         .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig())
@@ -336,7 +337,7 @@ public class DetailActivity extends AppCompatActivity {
                                     JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
                                     String  score = mainObject.getString("score");
                                     _imageModel.setRating(Float.parseFloat(score));
-//                                    _imageModel.save();
+                                    _imageModel.save();
                                     Toast.makeText(getActivity(), "Score of Image is : " + score , Toast.LENGTH_SHORT).show();
 
                                 } catch (JSONException e) {
@@ -359,10 +360,10 @@ public class DetailActivity extends AppCompatActivity {
 
 
         public void displayScore() {
-            if(_imageModel.getRating() != 0.0f) {
-                Toast.makeText(getActivity(), "Score of Image is : " + _imageModel.getRating() , Toast.LENGTH_SHORT).show();
-            }else {
+            if (_imageModel.getRating() == 0.0f) {
                 new CompressAndUploadRunnable(_imageModel.getUrl()).execute();
+            } else {
+//                Toast.makeText(getActivity(), "(CACHED) Score of Image is : " + _imageModel.getRating() , Toast.LENGTH_SHORT).show();
             }
         }
     }
