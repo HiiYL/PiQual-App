@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -170,24 +171,24 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 for(ImageModel imageModel : data) {
-                    if(imageModel.getRating() == 0.0f)
-                        uploadMultipart(imageModel);
+                    if(imageModel.getRating() == 0.0f) {
+                        new CompressAndUploadRunnable(imageModel).execute();
+                    }
                 }
             }
         });
     }
-    public void uploadMultipart(final ImageModel _imageModel) {
+    public void uploadMultipart(String imagePath, final ImageModel _imageModel) {
+        Log.d("UPLOAD", "UPLOAD MULTIPART STARTED");
         //Uploading code
         try {
-            String uploadId = "123";
+            String uploadId = UUID.randomUUID().toString();
 
             //Creating a multi part request
             new MultipartUploadRequest(MainActivity.this, uploadId, "http://192.168.0.105:5000/api")
-                    .addFileToUpload(_imageModel.getUrl(), "file") //Adding file
-                    .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
-                    .setNotificationConfig(
-                            new UploadNotificationConfig()
-                            .setAutoClearOnSuccess(true).setRingToneEnabled(false).setInProgressMessage(_imageModel.getUrl()))
+                    .addFileToUpload(imagePath, "file") //Adding file
+                    .addParameter("name", uploadId) //Adding text parameter to the request
+                    .setNotificationConfig(new UploadNotificationConfig().setAutoClearOnSuccess(true).setRingToneEnabled(false))
                     .setMaxRetries(2)
                     .setDelegate(new UploadStatusDelegate() {
                         @Override
@@ -244,7 +245,8 @@ public class MainActivity extends AppCompatActivity {
         }
         @Override
         protected void onPostExecute(Void result) {
-            uploadMultipart(_imageModel);
+            Log.d("UPLOAD", "POST EXECUTE");
+            uploadMultipart(compressedImageUrl, _imageModel);
         }
 
 

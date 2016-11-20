@@ -323,7 +323,7 @@ public class DetailActivity extends AppCompatActivity {
                 new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.105:5000/api")
                         .addFileToUpload(imagePath, "file") //Adding file
                         .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
-                        .setNotificationConfig(new UploadNotificationConfig())
+                        .setNotificationConfig(new UploadNotificationConfig().setAutoClearOnSuccess(true).setRingToneEnabled(false))
                         .setMaxRetries(2)
                         .setDelegate(new UploadStatusDelegate() {
                             @Override
