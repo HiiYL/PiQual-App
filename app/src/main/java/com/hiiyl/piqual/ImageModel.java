@@ -72,7 +72,7 @@ public class ImageModel extends SugarRecord implements Parcelable {
     }
 
     public float getRating() {
-        return rating;
+        return (float)Math.round(rating * 10) / 10;
     }
 
     public void setRating(float rating) {

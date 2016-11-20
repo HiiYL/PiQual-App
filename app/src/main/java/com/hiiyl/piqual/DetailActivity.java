@@ -72,7 +72,7 @@ public class DetailActivity extends AppCompatActivity {
         data = getIntent().getParcelableArrayListExtra("data");
         pos = getIntent().getIntExtra("pos", 0);
 
-        setTitle("Aesthetic Image");
+        setTitle("Gallery");
 
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
@@ -84,7 +84,7 @@ public class DetailActivity extends AppCompatActivity {
         mViewPager.setAdapter(mSectionsPagerAdapter);
         mViewPager.setCurrentItem(pos);
 
-        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+        ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
 
@@ -99,9 +99,10 @@ public class DetailActivity extends AppCompatActivity {
             public void onPageScrollStateChanged(int state) {
 
             }
-        });
+        };
 
-
+        mViewPager.addOnPageChangeListener(onPageChangeListener);
+//        onPageChangeListener.onPageSelected(pos);
     }
 
 
@@ -191,6 +192,7 @@ public class DetailActivity extends AppCompatActivity {
         private static final String ARG_IMG = "image";
 
         private TextView ratingTextView;
+        private ImageView likeImageView;
 
         @Override
         public void setArguments(Bundle args) {
@@ -244,9 +246,14 @@ public class DetailActivity extends AppCompatActivity {
             Glide.with(getActivity()).load(_imageModel.getUrl()).thumbnail(0.1f).into(imageView);
 
             ratingTextView = (TextView) rootView.findViewById(R.id.rating_textview);
+            likeImageView = (ImageView) rootView.findViewById(R.id.like_imageview);
 
             if(_imageModel.getRating() != 0.0f) {
-                ratingTextView.setText("Rating : " + String.valueOf(_imageModel.getRating()));
+                likeImageView.setVisibility(View.VISIBLE);
+                ratingTextView.setText(String.valueOf(_imageModel.getRating()));
+                if (_imageModel.getRating() < 5.0f) {
+                    likeImageView.setRotationX(180);
+                }
             }
             return rootView;
         }
@@ -313,7 +320,7 @@ public class DetailActivity extends AppCompatActivity {
                 String uploadId = UUID.randomUUID().toString();
 
                 //Creating a multi part request
-                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.109:5000/api")
+                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.105:5000/api")
                         .addFileToUpload(imagePath, "file") //Adding file
                         .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig())
