@@ -320,7 +320,7 @@ public class DetailActivity extends AppCompatActivity {
                 String uploadId = UUID.randomUUID().toString();
 
                 //Creating a multi part request
-                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.105:5000/api")
+                new MultipartUploadRequest(getActivity(), uploadId, "http://192.168.0.151:5000/api")
                         .addFileToUpload(imagePath, "file") //Adding file
                         .addParameter("name", _imageModel.getName()) //Adding text parameter to the request
                         .setNotificationConfig(new UploadNotificationConfig().setAutoClearOnSuccess(true).setRingToneEnabled(false))

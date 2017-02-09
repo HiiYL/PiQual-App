@@ -2,6 +2,7 @@ package com.hiiyl.piqual;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -12,14 +13,21 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -33,10 +41,17 @@ import net.gotev.uploadservice.UploadStatusDelegate;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +64,153 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton downloadFAB;
 
     ArrayList<ImageModel> data = new ArrayList<>();
+
+
+//    static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int REQUEST_TAKE_PHOTO = 1;
+
+    String mCurrentPhotoPath;
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+    }
+
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Log.e("FILE","IO EXCEPTION BRUH");
+                // Error occurred while creating the File
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.hiiyl.piqual.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+            }else{
+                Log.e("FILE2","IO EXCEPTION BRUH");
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+//            Bundle extras = data.getExtras();
+//            Bitmap imageBitmap = (Bitmap) extras.get("data");
+
+            Bitmap imageBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            LayoutInflater inflater = MainActivity.this.getLayoutInflater();
+            ViewGroup vg = (ViewGroup)inflater.inflate(R.layout.image_taken_dialog, null);
+            ImageView image = (ImageView) vg.findViewById(R.id.captured_image);
+            image.setImageBitmap(imageBitmap);
+
+            final TextView ratingTextView = (TextView) vg.findViewById(R.id.rating_textview);
+            builder.setView(vg);
+
+            final ImageModel _imageModel = new ImageModel();
+            _imageModel.setName("test");
+            _imageModel.setUrl(mCurrentPhotoPath);
+            _imageModel.save();
+
+            String uploadId = UUID.randomUUID().toString();
+
+            //Creating a multi part request
+            try {
+                new MultipartUploadRequest(MainActivity.this, uploadId, "http://192.168.1.130:5000/api")
+                        .addFileToUpload(mCurrentPhotoPath, "file") //Adding file
+                        .addParameter("name", uploadId) //Adding text parameter to the request
+                        .setNotificationConfig(new UploadNotificationConfig().setAutoClearOnSuccess(true).setRingToneEnabled(false))
+                        .setMaxRetries(2)
+                        .setDelegate(new UploadStatusDelegate() {
+                            @Override
+                            public void onProgress(UploadInfo uploadInfo) {
+
+                            }
+
+                            @Override
+                            public void onError(UploadInfo uploadInfo, Exception exception) {
+
+                            }
+
+                            @Override
+                            public void onCompleted(UploadInfo uploadInfo, ServerResponse serverResponse) {
+                                // your code here
+                                // if you have ma pped your server response to a POJO, you can easily get it:
+                                try {
+                                    JSONObject mainObject = new JSONObject(serverResponse.getBodyAsString());
+                                    String  score = mainObject.getString("score");
+                                    _imageModel.setRating(Float.parseFloat(score));
+                                    _imageModel.save();
+                                    ratingTextView.setText(String.format("%.2f", Float.parseFloat(score)));
+
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+
+                            @Override
+                            public void onCancelled(UploadInfo uploadInfo) {
+
+                            }
+                        })
+                        .startUpload(); //Starting the upload
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+
+//            builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+//                        @Override
+//                        public void onClick(DialogInterface dialog, int id) {
+//                            // sign in the user ...
+//                        }
+//                    })
+//                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//                        public void onClick(DialogInterface dialog, int id) {
+//                            dialog.cancel();
+//                        }
+//                    });
+            builder.show();
+//
+//            ImageModel imageModel = new ImageModel();
+//            imageModel.setUrl(((Uri) extras.get(MediaStore.EXTRA_OUTPUT)).getPath());
+        }else{
+//            Log.e("WTF", String.valueOf(resultCode));
+        }
+    }
 
     public static ArrayList<String> getImagesPath(Activity activity) {
         Uri uri;
@@ -170,11 +332,12 @@ public class MainActivity extends AppCompatActivity {
         downloadFAB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                for(ImageModel imageModel : data) {
-                    if(imageModel.getRating() == 0.0f) {
-                        new CompressAndUploadRunnable(imageModel).execute();
-                    }
-                }
+                dispatchTakePictureIntent();
+//                for(ImageModel imageModel : data) {
+//                    if(imageModel.getRating() == 0.0f) {
+//                        new CompressAndUploadRunnable(imageModel).execute();
+//                    }
+//                }
             }
         });
     }
@@ -185,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
             String uploadId = UUID.randomUUID().toString();
 
             //Creating a multi part request
-            new MultipartUploadRequest(MainActivity.this, uploadId, "http://192.168.0.105:5000/api")
+            new MultipartUploadRequest(MainActivity.this, uploadId, "http://192.168.0.151:5000/api")
                     .addFileToUpload(imagePath, "file") //Adding file
                     .addParameter("name", uploadId) //Adding text parameter to the request
                     .setNotificationConfig(new UploadNotificationConfig().setAutoClearOnSuccess(true).setRingToneEnabled(false))
